@@ -14,10 +14,11 @@ ai_sw_dev_team 是一个**角色固定、流程固定、产物落盘**的多智�
 
 ## 1. 快速开始
 
-环境要求：Python 3.11+（本机 3.14.5 已验证）、Git；**不需要** Docker，**不需要**任何第三方 Python 包。
+环境要求：Python 3.11+（已在 3.14 上验证）、Git；**不需要** Docker，**不需要**任何第三方 Python 包。
 
 ```powershell
-cd E:\WORK\ai_sw_dev_team
+# 先进入仓库根目录（git clone 后的目录，下文命令均在此目录执行）
+cd <repo-root>
 
 # 自检：配置、角色、离线模板、模型凭据、运行时目录
 .\ai_sw_dev_team.cmd doctor
@@ -97,7 +98,7 @@ Copy-Item config\llm.example.toml config\llm.local.toml
 ## 4. 目录结构
 
 ```
-E:\WORK\ai_sw_dev_team\
+<repo-root>/
 ├─ ai_sw_dev_team.cmd           # Windows 主入口（设置 PYTHONPATH 后调用 python -m ai_sw_dev_team）
 ├─ team.cmd                     # 兼容入口：转发到 ai_sw_dev_team.cmd
 ├─ pyproject.toml               # 可选安装配置（pip install -e . 后可用 ai_sw_dev_team 命令）
@@ -214,7 +215,7 @@ runs/<run_id>/
 
 | 现象 | 处理 |
 | --- | --- |
-| `未找到 config/team.toml` | 在项目根执行，或设置 `AI_SW_DEV_TEAM_HOME=E:\WORK\ai_sw_dev_team` |
+| `未找到 config/team.toml` | 在项目根执行，或设置 `AI_SW_DEV_TEAM_HOME=<repo-root>` |
 | 结果 `mode=offline` 且 `warnings` 提示缺 Key | 按第 2 节配置凭据 |
 | 模型接口返回 HTTP 4xx/5xx | 检查 `base_url`、`model`、密钥与额度；`doctor` 可快速确认 |
 | 质量门禁反复失败 | 查看 `decisions.jsonl` 与质量角色的 `defect_list.md`，按回退目标逐条修复 |
