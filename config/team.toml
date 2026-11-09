@@ -1,0 +1,37 @@
+# ai_sw_dev_team 团队配置：角色流水线、质量门禁、模型供应商默认值
+# 说明：此处只放“流程与参数”，角色职责与提示词在 roles/<角色>/ 下。
+
+[team]
+name = "ai_sw_dev_team 协作团队"
+# 整轮运行允许的最大返工次数（质量门禁触发的回退次数）
+max_rework_cycles = 2
+# 传给模型的上游产物文本上限（字符），超出按角色截断
+max_context_chars = 60000
+
+[pipeline]
+# 按顺序执行的角色 id，必须与 roles/*/role.toml 中的 id 对应
+stages = ["requirements", "architecture", "development", "quality", "release"]
+
+# 质量门禁：质量角色输出 verdict = "fail" 时回退上游
+[[gate]]
+role = "quality"
+verdict_field = "verdict"
+enabled = true
+# 按尝试次数选择回退目标：attempt >= after_attempt 时生效，取满足条件的最大者
+[[gate.on_fail]]
+target = "development"
+after_attempt = 1
+[[gate.on_fail]]
+target = "architecture"
+after_attempt = 2
+
+[provider]
+# OpenAI 兼容接口；环境变量 AI_SW_DEV_TEAM_BASE_URL / AI_SW_DEV_TEAM_MODEL / AI_SW_DEV_TEAM_API_KEY 优先
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o-mini"
+timeout_seconds = 120
+temperature = 0.3
+
+[paths]
+runs = "runs"
+artifacts = "artifacts"

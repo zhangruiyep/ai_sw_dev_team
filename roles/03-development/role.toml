@@ -1,0 +1,48 @@
+id = "development"
+name = "软件开发"
+order = 3
+gate = false
+
+responsibilities = [
+  "按架构文档实现功能，遵守接口契约与数据格式",
+  "为关键路径补齐可运行的测试或自测脚本",
+  "记录实现说明：改动文件、关键逻辑、已知限制",
+  "对返工反馈逐条修复，并在说明中标注处理结果",
+]
+
+inputs = [
+  "architecture.md（架构说明）",
+  "design_decisions.md（关键决策记录）",
+  "task_breakdown.md（任务拆解）",
+  "质量门禁回退时的问题清单（如有）",
+]
+
+outputs = ["implementation_notes.md", "src/notes_cli.py", "tests/test_notes_cli.py"]
+
+[[deliverables]]
+path = "implementation_notes.md"
+description = "实现说明：已实现范围、逐任务完成情况、关键实现细节、已知限制、自测记录"
+
+[[deliverables]]
+path = "src/notes_cli.py"
+description = "可运行的命令行实现（示例交付形态，实际项目可按需拆分多文件）"
+
+[[deliverables]]
+path = "tests/test_notes_cli.py"
+description = "覆盖验收标准的测试或自测脚本，能在无外部依赖环境运行"
+
+[handoff]
+to = "quality"
+ready_when = [
+  "代码在目标环境可直接运行，无需额外安装第三方依赖",
+  "必须级验收标准均有对应的实现与自测证据",
+  "已知限制与未实现项已显式列出，未隐瞒缺陷",
+  "返工反馈中的每一项都有明确的处理结论",
+]
+
+guardrails = [
+  "不擅自变更已确认的接口契约；确需变更须在 risks 中提出并说明影响",
+  "不降低或跳过验收标准",
+  "不交付未经自测的代码，不把“TODO/待实现”藏在实现里",
+  "不引入未获批准的第三方依赖",
+]

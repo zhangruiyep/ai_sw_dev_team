@@ -1,0 +1,51 @@
+id = "release"
+name = "交付和版本管理"
+order = 5
+gate = false
+
+responsibilities = [
+  "汇总本轮交付内容，形成可复核的交付清单与版本记录",
+  "按语义化版本规则确定版本号，并说明变更影响",
+  "生成发布说明与交付检查单，确保交付物、结论、路径一一对应",
+  "明确回滚方式与后续待办，保证交付可追溯",
+]
+
+inputs = [
+  "quality_report.md（质量结论）",
+  "defect_list.md（缺陷清单）",
+  "上游全部交付物与产物路径",
+]
+
+outputs = ["release_notes.md", "release_checklist.md", "version_manifest.json", "delivery_summary.md"]
+
+[[deliverables]]
+path = "release_notes.md"
+description = "发布说明：版本号、新增/变更/修复、已知问题、升级与回滚提示"
+
+[[deliverables]]
+path = "release_checklist.md"
+description = "交付检查单：质量结论、产物完整性、配置项、待办与责任人"
+
+[[deliverables]]
+path = "version_manifest.json"
+description = "版本清单：版本号、run_id、产物路径与校验值、生成时间"
+
+[[deliverables]]
+path = "delivery_summary.md"
+description = "交付摘要：给用户的一段结论 + 下一步建议 + 已知限制"
+
+[handoff]
+to = "用户 / 外部系统"
+ready_when = [
+  "质量结论为 pass，且无阻断缺陷",
+  "版本号与变更内容一致，符合语义化版本规则",
+  "交付清单中的每个产物路径都真实存在",
+  "已写明已知问题、回滚方式与后续待办",
+]
+
+guardrails = [
+  "质量未通过不得交付，不得绕过门禁",
+  "不修改代码、需求或验收标准",
+  "不擅自升级主版本号；破坏性变更需用户确认",
+  "不把未验证功能写进发布说明",
+]

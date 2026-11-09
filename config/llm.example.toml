@@ -1,0 +1,10 @@
+# 用法：复制为 config/llm.local.toml（该文件已被 .gitignore 忽略），填入自己的凭据。
+# 环境变量优先级高于本文件：AI_SW_DEV_TEAM_API_KEY / AI_SW_DEV_TEAM_BASE_URL / AI_SW_DEV_TEAM_MODEL / AI_SW_DEV_TEAM_TIMEOUT / AI_SW_DEV_TEAM_TEMPERATURE
+
+[provider]
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o-mini"
+api_key = "sk-替换为你的密钥"
+# 可选
+timeout_seconds = 120
+temperature = 0.3

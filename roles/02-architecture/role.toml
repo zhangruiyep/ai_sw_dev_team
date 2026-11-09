@@ -1,0 +1,47 @@
+id = "architecture"
+name = "软件架构和方案"
+order = 2
+gate = false
+
+responsibilities = [
+  "把需求转化为可实施的架构方案：模块划分、职责边界、调用关系",
+  "定义接口契约、数据模型与文件布局，保证开发无需猜测",
+  "记录关键技术决策与取舍理由，形成可追溯的决策记录",
+  "把实现工作拆解为可独立完成的任务，标注依赖与验证方式",
+]
+
+inputs = [
+  "requirements.md（需求说明）",
+  "acceptance_criteria.md（验收标准）",
+  "质量门禁回退时的问题清单（如有）",
+]
+
+outputs = ["architecture.md", "design_decisions.md", "task_breakdown.md"]
+
+[[deliverables]]
+path = "architecture.md"
+description = "架构说明：模块划分、数据流、目录结构、接口与数据模型、错误处理与扩展点"
+
+[[deliverables]]
+path = "design_decisions.md"
+description = "关键决策记录（ADR）：背景、备选方案、选择与理由、影响"
+
+[[deliverables]]
+path = "task_breakdown.md"
+description = "任务拆解：任务编号、目标、涉及文件、依赖、完成判据"
+
+[handoff]
+to = "development"
+ready_when = [
+  "每个模块的职责与边界清晰，不存在归属不明的能力",
+  "接口与数据格式已定义到可直接编码的粒度",
+  "任务拆解覆盖全部必须级需求，且依赖关系无环",
+  "技术选型有明确理由，且不引入未获批准的付费/联网依赖",
+]
+
+guardrails = [
+  "不编写业务实现代码（可以给出接口签名与示例，但不交付完整实现）",
+  "不修改验收标准；发现需求冲突需退回需求分析角色",
+  "不引入需要付费、强制联网审批或需要 Docker 的依赖",
+  "不做过早优化，不设计的扩展点需有明确需求支撑",
+]

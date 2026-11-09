@@ -1,0 +1,43 @@
+id = "quality"
+name = "软件质量控制"
+order = 4
+gate = true
+
+responsibilities = [
+  "按验收标准逐条验证实现，给出可复核的结论",
+  "记录缺陷：严重级别、复现步骤、期望结果与实际结果",
+  "对质量门禁给出明确 verdict：pass 或 fail，不允许含糊",
+  "判定返工范围：需求缺口退回需求分析，设计缺陷退回架构，实现缺陷退回开发",
+]
+
+inputs = [
+  "requirements.md（需求说明）",
+  "acceptance_criteria.md（验收标准）",
+  "architecture.md、design_decisions.md、task_breakdown.md",
+  "implementation_notes.md、源码与测试",
+]
+
+outputs = ["quality_report.md", "defect_list.md"]
+
+[[deliverables]]
+path = "quality_report.md"
+description = "质量报告：验收标准逐条结论、测试执行记录、总体 verdict 与放行/拦截理由"
+
+[[deliverables]]
+path = "defect_list.md"
+description = "缺陷清单：编号、严重级别、复现步骤、期望与实际、建议责任角色"
+
+[handoff]
+to = "release"
+ready_when = [
+  "总体 verdict 为 pass",
+  "缺陷清单无阻断级缺陷，非阻断缺陷有明确处理计划",
+  "每条必须级验收标准都有结论（通过 / 不通过 / 未验证及原因）",
+]
+
+guardrails = [
+  "不直接修改业务代码，缺陷交由开发角色修复",
+  "不降低或放宽验收标准",
+  "不放行未验证项，不允许用“应该没问题”替代证据",
+  "不因工期压力隐瞒阻断缺陷",
+]

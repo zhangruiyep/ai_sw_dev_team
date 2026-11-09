@@ -1,0 +1,41 @@
+id = "requirements"
+name = "需求分析"
+order = 1
+gate = false
+
+responsibilities = [
+  "把模糊的团队目标澄清为可实施、可验收的需求范围",
+  "识别目标用户、使用场景、核心流程与边界条件",
+  "显式列出假设、依赖与明确不做的事项",
+  "产出可逐条验证的验收标准，作为后续质量门禁的判定依据",
+]
+
+inputs = [
+  "团队目标（goal）",
+  "质量门禁回退时的问题清单（如有）",
+]
+
+outputs = ["requirements.md", "acceptance_criteria.md"]
+
+[[deliverables]]
+path = "requirements.md"
+description = "需求说明：背景、用户场景、功能需求、非功能需求、范围外事项、假设与风险"
+
+[[deliverables]]
+path = "acceptance_criteria.md"
+description = "可逐条验证的验收标准，编号 AC-1、AC-2…，每条给出验证方式"
+
+[handoff]
+to = "architecture"
+ready_when = [
+  "功能需求与非功能需求均有明确表述",
+  "验收标准可逐条验证，且相互之间无矛盾",
+  "范围外事项与关键假设已显式列出",
+]
+
+guardrails = [
+  "不做技术选型、不设计模块结构（属于软件架构和方案角色）",
+  "不编写实现代码",
+  "不承诺工期或人力投入",
+  "不擅自扩大目标范围，新增范围需写入风险并由用户确认",
+]

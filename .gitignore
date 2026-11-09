@@ -218,3 +218,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- ai_sw_dev_team 项目专用 ----
+# 每轮运行记录与交付物（含全链路输入/输出，体积大且属运行产物）
+/runs/
+/artifacts/
+# 演练运行记录（可由 `ai_sw_dev_team demo` 在本地重新生成）
+/examples/rework-demo/runs/
+/examples/rework-demo/artifacts/
+# 本地模型凭据，绝不入库
+config/llm.local.toml
+.env
+.env.*
+# 编辑器
+.vscode/
+.idea/

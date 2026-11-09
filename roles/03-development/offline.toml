@@ -1,0 +1,310 @@
+# 离线演练示例数据：不调用模型时用于验证编排链路与产物结构。
+
+summary = "完成 T-1 至 T-5：CLI 支持 add/list/search/index/delete，自测覆盖 AC-1 至 AC-10。"
+verdict = "n/a"
+
+decisions = [
+  "按任务拆解顺序实现，先打通写入与读取，再补检索与索引",
+  "文件头使用 ---- 作为结束标记，解析时只取第一条标记之前的内容",
+  "所有失败路径统一映射为退出码 2/3/1，并在 stderr 输出可操作提示",
+  "额外提供 --notes-dir 参数，便于测试与多笔记库共存",
+]
+
+risks = [
+  "离线演练代码为示例实现，接入模型后将由真实开发角色输出",
+  "中文标题的 id 摘要会退化为 note，需在后续迭代中补充音译或哈希兜底",
+]
+
+[handoff]
+ready = true
+notes = "必须级验收标准均有实现与自测记录，可进入质量控制。"
+
+[[artifacts]]
+path = "implementation_notes.md"
+content = """# 实现说明（离线演练示例）
+
+> 本文件由 `roles/03-development/offline.toml` 生成，用于验证编排链路；接入模型后会替换为真实实现记录。
+
+## 1. 完成情况
+
+| 任务 | 状态 | 说明 |
+| --- | --- | --- |
+| T-1 项目骨架与 CLI 入口 | 完成 | argparse 子命令：add / list / search / delete / index |
+| T-2 笔记读写与 id 生成 | 完成 | 文件头键值段 + `----` 结束符；同秒冲突追加序号 |
+| T-3 索引构建与加载 | 完成 | `index.json` 可重建，损坏时降级为扫描 |
+| T-4 关键词与标签检索 | 完成 | 大小写不敏感子串匹配，摘要截取命中所在一行 |
+| T-5 删除与 JSON 输出 | 完成 | 不存在返回退出码 3；`--json` 下 stdout 仅 JSON |
+| T-6 自测与文档 | 完成 | 测试覆盖 AC-1 至 AC-10 的主要路径 |
+
+## 2. 自测记录
+
+```
+python tests/test_notes_cli.py
+Ran 8 tests in 0.021s
+OK
+```
+
+```
+python src/notes_cli.py --notes-dir demo add --title "离线演练" --body "验证写入" --tags demo
+python src/notes_cli.py --notes-dir demo list
+python src/notes_cli.py --notes-dir demo index
+```
+
+三条命令均返回 0，`demo/index.json` 中可见新笔记。
+
+## 3. 已知限制
+
+- 中文标题在 id 摘要中会退化为 `note`，唯一性由时间戳与序号保证。
+- 检索为子串匹配，不支持同义词与拼写纠错（符合 ADR-4）。
+- 索引加载失败时会全量扫描，笔记量很大时首次查询会变慢。
+
+## 4. 返工反馈处理
+
+本轮无质量返工反馈。
+"""
+
+[[artifacts]]
+path = "src/notes_cli.py"
+content = '''#!/usr/bin/env python3
+"""notes_cli：离线演练示例实现（仅标准库）。
+
+用法：
+    python notes_cli.py add --title "标题" --body "正文" --tags demo,test
+    python notes_cli.py list
+    python notes_cli.py search --keyword 标题
+    python notes_cli.py delete --id 20261109100000-demo
+    python notes_cli.py index
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+
+HEADER_END = "----"
+INDEX_NAME = "index.json"
+
+
+def slugify(title: str) -> str:
+    slug = re.sub(r"[^0-9A-Za-z]+", "-", title).strip("-").lower()
+    return slug[:24] or "note"
+
+
+def parse_note(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    head, _, body = text.partition(HEADER_END + chr(10))
+    meta: dict = {"id": path.stem, "tags": [], "title": path.stem, "created": ""}
+    for line in head.splitlines():
+        key, sep, value = line.partition(":")
+        if not sep:
+            continue
+        key = key.strip().lower()
+        if key == "tags":
+            meta["tags"] = [tag.strip() for tag in value.split(",") if tag.strip()]
+        elif key in ("title", "created"):
+            meta[key] = value.strip()
+    meta["body"] = body.strip()
+    meta["path"] = str(path)
+    return meta
+
+
+def load_notes(notes_dir: Path) -> list[dict]:
+    if not notes_dir.is_dir():
+        return []
+    return [parse_note(path) for path in sorted(notes_dir.glob("*.md"))]
+
+
+def write_note(notes_dir: Path, title: str, body: str, tags: list[str], now: datetime | None = None) -> dict:
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    now = now or datetime.now()
+    base = f"{now:%Y%m%d%H%M%S}-{slugify(title)}"
+    candidate, suffix = base, 1
+    while (notes_dir / f"{candidate}.md").exists():
+        suffix += 1
+        candidate = f"{base}-{suffix}"
+    content = chr(10).join(
+        [
+            f"title: {title}",
+            f"tags: {', '.join(tags)}",
+            f"created: {now.isoformat(timespec='seconds')}",
+            HEADER_END,
+            body,
+            "",
+        ]
+    )
+    path = notes_dir / f"{candidate}.md"
+    path.write_text(content, encoding="utf-8")
+    return parse_note(path)
+
+
+def matches(note: dict, keyword: str) -> bool:
+    needle = keyword.lower()
+    return needle in note["title"].lower() or needle in note["body"].lower()
+
+
+def summarize(note: dict, keyword: str) -> str:
+    for line in note["body"].splitlines():
+        if keyword.lower() in line.lower():
+            return line[:80]
+    return note["body"][:80]
+
+
+def rebuild_index(notes_dir: Path) -> dict:
+    notes = load_notes(notes_dir)
+    index = {
+        "version": 1,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "notes": [
+            {"id": note["id"], "title": note["title"], "tags": note["tags"], "created": note["created"]}
+            for note in notes
+        ],
+    }
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    (notes_dir / INDEX_NAME).write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+    return index
+
+
+def emit(payload: dict, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+    for note in payload.get("notes", []):
+        print(f"{note['id']}  {note['title']}  [{', '.join(note['tags'])}]")
+    if payload.get("message"):
+        print(payload["message"])
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="notes", description="本地 Markdown 笔记管理（离线演练示例）")
+    parser.add_argument("--notes-dir", default="notes", help="笔记目录，默认 ./notes")
+    parser.add_argument("--json", action="store_true", help="以 JSON 输出结果")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    add = sub.add_parser("add", help="新建笔记")
+    add.add_argument("--title", required=True)
+    add.add_argument("--body", default="")
+    add.add_argument("--tags", default="")
+
+    sub.add_parser("list", help="列出笔记")
+    sub.add_parser("index", help="重建索引")
+
+    search = sub.add_parser("search", help="检索笔记")
+    search.add_argument("--keyword", default="")
+    search.add_argument("--tag", action="append", default=[])
+
+    delete = sub.add_parser("delete", help="删除笔记")
+    delete.add_argument("--id", required=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    notes_dir = Path(args.notes_dir)
+    if args.command == "add":
+        tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
+        note = write_note(notes_dir, args.title, args.body, tags)
+        emit({"notes": [note], "message": f"已创建 {note['id']}"}, args.json)
+        return 0
+    if args.command == "list":
+        emit({"notes": load_notes(notes_dir)}, args.json)
+        return 0
+    if args.command == "index":
+        index = rebuild_index(notes_dir)
+        emit({"message": f"已重建索引，共 {len(index['notes'])} 条"}, args.json)
+        return 0
+    if args.command == "search":
+        notes = load_notes(notes_dir)
+        hits = [note for note in notes if args.keyword and matches(note, args.keyword)]
+        hits = [note for note in hits if all(tag in note["tags"] for tag in args.tag)]
+        for note in hits:
+            note["summary"] = summarize(note, args.keyword) if args.keyword else note["body"][:80]
+        emit({"notes": hits}, args.json)
+        return 0
+    if args.command == "delete":
+        path = notes_dir / f"{args.id}.md"
+        if not path.is_file():
+            print(f"笔记不存在：{args.id}", file=sys.stderr)
+            return 3
+        path.unlink()
+        emit({"message": f"已删除 {args.id}"}, args.json)
+        return 0
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+'''
+
+[[artifacts]]
+path = "tests/test_notes_cli.py"
+content = '''"""离线演练示例测试：仅使用标准库 unittest。"""
+
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+import notes_cli  # noqa: E402
+
+
+class NotesCliTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_create_note_writes_file(self) -> None:
+        note = notes_cli.write_note(self.dir, "离线演练", "验证写入", ["demo"])
+        self.assertTrue((self.dir / f"{note['id']}.md").is_file())
+        self.assertEqual(note["title"], "离线演练")
+
+    def test_duplicate_title_gets_new_id(self) -> None:
+        first = notes_cli.write_note(self.dir, "标题", "a", [])
+        second = notes_cli.write_note(self.dir, "标题", "b", [])
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertEqual(len(notes_cli.load_notes(self.dir)), 2)
+
+    def test_keyword_search_finds_body(self) -> None:
+        notes_cli.write_note(self.dir, "标题", "正文里有关键词", [])
+        notes = notes_cli.load_notes(self.dir)
+        self.assertTrue(any(notes_cli.matches(note, "关键词") for note in notes))
+
+    def test_tag_filter_requires_all_tags(self) -> None:
+        notes_cli.write_note(self.dir, "A", "", ["x", "y"])
+        notes_cli.write_note(self.dir, "B", "", ["x"])
+        notes = notes_cli.load_notes(self.dir)
+        filtered = [note for note in notes if all(tag in note["tags"] for tag in ["x", "y"])]
+        self.assertEqual(len(filtered), 1)
+
+    def test_rebuild_index(self) -> None:
+        notes_cli.write_note(self.dir, "A", "", ["demo"])
+        index = notes_cli.rebuild_index(self.dir)
+        self.assertEqual(len(index["notes"]), 1)
+        data = json.loads((self.dir / "index.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["version"], 1)
+
+    def test_delete_missing_note_returns_3(self) -> None:
+        self.assertEqual(notes_cli.main(["--notes-dir", str(self.dir), "delete", "--id", "missing"]), 3)
+
+    def test_json_mode_stdout_is_json(self) -> None:
+        code = notes_cli.main(["--notes-dir", str(self.dir), "--json", "add", "--title", "JSON", "--body", "ok"])
+        self.assertEqual(code, 0)
+
+    def test_list_empty(self) -> None:
+        self.assertEqual(notes_cli.main(["--notes-dir", str(self.dir), "list"]), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
+'''

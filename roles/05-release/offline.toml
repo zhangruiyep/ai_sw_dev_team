@@ -1,0 +1,112 @@
+# 离线演练示例数据：不调用模型时用于验证编排链路与产物结构。
+
+summary = "版本 v0.1.0 已完成交付准备：质量结论 pass，产物 4 份，附回滚与后续待办。"
+verdict = "n/a"
+
+decisions = [
+  "版本号定为 v0.1.0：首次交付、无历史版本、能力范围符合 minor 初始定义",
+  "交付形态为代码 + 文档 + 索引示例，不含二进制发布包",
+  "回滚方式为保留上一份 notes 目录备份，索引可随时重建",
+]
+
+risks = [
+  "离线演练中的版本清单为示例数据，真实 run_id 与 sha256 由编排器落盘结果生成",
+]
+
+[handoff]
+ready = true
+notes = "交付清单与版本记录已就绪，等待用户验收。"
+
+[[artifacts]]
+path = "release_notes.md"
+content = """# 发布说明 v0.1.0（离线演练示例）
+
+- 版本：v0.1.0
+- 运行标识：{{run_id}}
+- 生成日期：{{date}}
+- 质量结论：pass（详见 quality/quality_report.md）
+
+## 新增
+
+- 笔记新建、列表、关键词/标签检索、删除、索引重建五类命令
+- `--json` 输出模式，便于外部程序解析
+- 文件头元信息格式（title / tags / created），正文以 `----` 分隔
+
+## 变更
+
+- 无（首次交付）
+
+## 修复
+
+- 无（首次交付）
+
+## 已知问题
+
+- 中文标题生成的 id 摘要退化为 `note`，唯一性由时间戳与序号保证
+- 检索为大小写不敏感的子串匹配，不支持同义词
+- 未做 1000 条以上笔记的性能压测
+
+## 升级与回滚
+
+- 升级：直接替换 `notes_cli` 目录，笔记数据格式向后兼容
+- 回滚：恢复上一版本代码目录，执行 `notes index` 重建索引即可
+"""
+
+[[artifacts]]
+path = "release_checklist.md"
+content = """# 交付检查单 v0.1.0（离线演练示例）
+
+| 检查项 | 结论 | 证据 |
+| --- | --- | --- |
+| 质量结论为 pass | 通过 | quality/quality_report.md |
+| 无阻断缺陷 | 通过 | quality/defect_list.md |
+| 必须级验收标准全部通过 | 通过 | AC-1 至 AC-10 |
+| 交付物路径真实存在 | 通过 | 见 artifacts/{{run_id}}/manifest.json |
+| 版本号符合语义化规则 | 通过 | 首次交付，v0.1.0 |
+| 已知问题已登记 | 通过 | release_notes.md「已知问题」 |
+| 回滚方式已说明 | 通过 | release_notes.md「升级与回滚」 |
+
+## 待配置项
+
+- 若需启用真实模型协作，请配置 AI_SW_DEV_TEAM_API_KEY（或 config/llm.local.toml），再执行 `ai_sw_dev_team run --mode llm`。
+
+## 后续待办
+
+| 待办 | 建议责任人 |
+| --- | --- |
+| 中文标题 id 兜底策略 | 软件开发 |
+| 1000 条以上性能压测 | 软件质量控制 |
+| 是否引入分词检索的决策 | 软件架构和方案 |
+"""
+
+[[artifacts]]
+path = "version_manifest.json"
+content = """{
+  "version": "0.1.0",
+  "run_id": "{{run_id}}",
+  "generated_at": "{{date}}",
+  "quality_verdict": "pass",
+  "artifacts": [
+    {"role": "requirements", "path": "requirements/requirements.md"},
+    {"role": "architecture", "path": "architecture/architecture.md"},
+    {"role": "development", "path": "development/src/notes_cli.py"},
+    {"role": "quality", "path": "quality/quality_report.md"},
+    {"role": "release", "path": "release/release_notes.md"}
+  ],
+  "note": "离线演练示例清单；真实 sha256 由编排器写入 artifacts/<run_id>/manifest.json"
+}
+"""
+
+[[artifacts]]
+path = "delivery_summary.md"
+content = """# 交付摘要（离线演练示例）
+
+本轮已按五角色流水线完成从需求到交付的完整闭环，版本 **v0.1.0**，质量结论 **pass**。
+
+- 交付内容：命令行笔记工具的需求说明、架构与决策记录、示例实现与测试、质量报告、发布说明与版本清单。
+- 可直接体验：`python development/src/notes_cli.py --notes-dir demo add --title "演示" --body "hello"`。
+- 已知限制：中文标题 id 摘要退化、检索不支持同义词、未做大规模性能压测。
+- 下一步建议：配置模型凭据后以 `--mode llm` 跑一次真实目标，或按「后续待办」推进迭代。
+
+> 本文件由离线演练模板生成，用于验证交付阶段的产物形态。
+"""
